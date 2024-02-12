@@ -9,10 +9,10 @@ I first trimmed adapters and low quality reads with trimmomatic (using default p
 
 **Trimmomatic**
 ```
-for infile in *_L001_R1_001.fastq.gz \
-do \
-base=$(basename ${infile} _L001_R1_001.fastq.gz) \
-trimmomatic PE -threads 8 \
+for infile in *_L001_R1_001.fastq.gz 
+do
+base=$(basename ${infile} _L001_R1_001.fastq.gz)
+java -jar /usr/share/java/trimmomatic.jar PE -threads 8 \
 ${base}_L001_R1_001.fastq.gz ${base}_L001_R2_001.fastq.gz \
 trimmed/${base}_L001_R1_001.trim.fastq.gz untrim/${base}_L001_R1_001.untrim.fastq.gz \
 trimmed/${base}_L001_R2_001.trim.fastq.gz untrim/${base}_L001_R2_001.untrim.fastq.gz \
@@ -20,15 +20,15 @@ ILLUMINACLIP:/usr/share/trimmomatic/TruSeq3-PE-2.fa:2:30:10 \
 LEADING:3 \
 TRAILING:3 \
 SLIDINGWINDOW:4:15 \
-MINLEN:36 \
-done
+MINLEN:36 |& tee -a trimmomatic_output.txt
+done 
 ```
 **fastqc**
 ```
-for infile in *_001.trim.fastq.gz \
-do \
-base=$(basename ${infile} _001.trim.fastq.gz) \
-fastqc -o fastqc --noextract ${base}_001.trim.fastq.gz \
+for infile in *_001.trim.fastq.gz 
+do
+base=$(basename ${infile} _001.trim.fastq.gz)
+fastqc -o fastqc --noextract ${base}_001.trim.fastq.gz
 done
 ```
 **multiqc**
@@ -40,14 +40,13 @@ After examining fastqc files, I saw that some of my samples had poly-G tails. I 
 
 **fastqc (after poly-G trim)**
 ```
-for infile in *_001.polyGtrim.fastq.gz \
-do \
-base=$(basename ${infile} _001.polyGtrim.fastq.gz) \
-fastqc -o trim_polyG/fastqc --noextract ${base}_001.polyGtrim.fastq.gz \
+for infile in *_001.polyGtrim.fastq.gz 
+do 
+base=$(basename ${infile} _001.polyGtrim.fastq.gz) 
+fastqc -o trim_polyG/fastqc --noextract ${base}_001.polyGtrim.fastq.gz
 done
 ```
 **multiqc (after poly-G trim)**
 ```
 multiqc -o fastqc/multiqc fastqc
 ```
-

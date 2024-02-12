@@ -183,5 +183,5 @@ extra_barcode_GTCGATTG-ACGGTCTT_L001"
 
 for i in $FILES
 do
-cutadapt -a "G{50}" -A "G{50}" -m 36 --cores=8 -o data/fastq/trim_polyG/"$i"_R1.polyGtrim.fastq.gz -p data/fastq/trim_polyG/"$i"_R2.finaltrim.fastq.gz data/fastq/trimmed/"$i"_R1_001.trim.fastq.gz data/fastq/trimmed/"$i"_R2_001.trim.fastq.gz
+cutadapt -a "G{50}" -A "G{50}" -m 36 --cores=8 -o data/fastq/trim_polyG/"$i"_R1.polyGtrim.fastq.gz -p data/fastq/trim_polyG/"$i"_R2.polyGtrim.fastq.gz data/fastq/trimmed/"$i"_R1_001.trim.fastq.gz data/fastq/trimmed/"$i"_R2_001.trim.fastq.gz
 done
