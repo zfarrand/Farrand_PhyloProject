@@ -40,13 +40,40 @@ After examining fastqc files, I saw that some of my samples had poly-G tails. I 
 
 **fastqc (after poly-G trim)**
 ```
-for infile in *_001.polyGtrim.fastq.gz 
+for infile in *.polyGtrim.fastq.gz 
 do 
-base=$(basename ${infile} _001.polyGtrim.fastq.gz) 
-fastqc -o trim_polyG/fastqc --noextract ${base}_001.polyGtrim.fastq.gz
+base=$(basename ${infile} .polyGtrim.fastq.gz) 
+fastqc -o fastqc --noextract ${base}.polyGtrim.fastq.gz
 done
 ```
 **multiqc (after poly-G trim)**
 ```
 multiqc -o fastqc/multiqc fastqc
+```
+
+## Mapping
+I first start by indexing the reference genome I used for creating my target capture baits (OchPri4.0) with bwa.
+
+```
+bwa index GCF_014633375.1_OchPri4.0_genomic.fna.gz
+```
+Next I map my trimmed reads to the reference genome.
+```
+for infile in fastq/trim_polyG/*_L001_R1.polyGtrim.fastq.gz
+do
+base=$(basename ${infile} _L001_R1.polyGtrim.fastq.gz)
+bwa mem -t 8 -M refgenome/GCF_014633375.1_OchPri4.0_genomic.fna.gz \
+fastq/trim_polyG/${base}_L001_R1.polyGtrim.fastq.gz fastq/trim_polyG/${base}_L001_R2.polyGtrim.fastq.gz \
+> sam/${base}.sam |& tee -a bwa_output.txt
+done
+```
+I then convert sam to bam, sort bam files, and mark duplicates.
+```
+for infile in sam/*.sam
+do
+base=$(basename ${infile} .sam)
+samtools fixmate -@ 8 -m -O bam sam/${base}.sam bam/${base}.bam
+samtools sort -@ 8 -O bam -o bam/${base}.sorted.bam bam/${base}.bam
+samtools markdup bam/${base}.sorted.bam ${base}.markdup.bam |& tee -a fixmate_sort_markdup_output.txt
+done
 ```
