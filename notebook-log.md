@@ -63,17 +63,76 @@ for infile in fastq/trim_polyG/*_L001_R1.polyGtrim.fastq.gz
 do
 base=$(basename ${infile} _L001_R1.polyGtrim.fastq.gz)
 bwa mem -t 8 -M refgenome/GCF_014633375.1_OchPri4.0_genomic.fna.gz \
-fastq/trim_polyG/${base}_L001_R1.polyGtrim.fastq.gz fastq/trim_polyG/${base}_L001_R2.polyGtrim.fastq.gz \
-> sam/${base}.sam |& tee -a bwa_output.txt
+fastq/trim_polyG/${base}_L001_R1.polyGtrim.fastq.gz fastq/trim_polyG/${base}_L001_R2.polyGtrim.fastq.gz > sam/${base}.sam
 done
 ```
 I then convert sam to bam, sort bam files, and mark duplicates.
 ```
-for infile in sam/*.sam
+for infile in *.sam
 do
 base=$(basename ${infile} .sam)
-samtools fixmate -@ 8 -m -O bam sam/${base}.sam bam/${base}.bam
+samtools fixmate -@ 8 -m -O bam ${base}.sam bam/${base}.bam
 samtools sort -@ 8 -O bam -o bam/${base}.sorted.bam bam/${base}.bam
-samtools markdup bam/${base}.sorted.bam ${base}.markdup.bam |& tee -a fixmate_sort_markdup_output.txt
+samtools markdup bam/${base}.sorted.bam bam/${base}.markdup.bam
 done
+```
+## SNP Calling and Filtering
+I then call SNPs with bcftools, but must do this separately for mitochdonrial and nuclear genes due to the ploidy. 
+
+I then reduced my sample list down to 3 high quality individuals per lineage/species, drawing from different populations when possible. 
+
+**Mitochondrial Genes**
+
+Start by indexing bam files.
+```
+for infile in *.markdup.bam
+do
+base=$(basename ${infile} .markdup.bam)
+samtools index ${base}.markdup.bam
+done
+```
+Then pull out the mtDNA sequences based on coordinates from the reference genome.
+```
+for infile in *.markdup.bam
+do
+base=$(basename ${infile} .markdup.bam)
+samtools view -@ 8 -o mitobam/${base}.mt.bam ${base}.markdup.bam NC_005358.1:1-16481
+done
+```
+Call variants and generate vcf. In mpileup I am disabling BAQ which helps to reduce false SNPs due to misalignments, skipping indels, applying minimum base quality of 20, and allowing for very high read depth as I will filter for this later. In call I am forcing a consensus for ploidy of 1 and only considering SNPs with p-value of 0.0001.
+```
+bcftools mpileup -B -I --min-BQ 20 -Ou --threads 8 -f GCF_014633375.1_OchPri4.0_genomic.fna *.markdup.bam -d 8000 \
+| bcftools call --threads 8 --ploidy 1 -p .0001 -mv -a GQ,GP -Oz -o mtDNA.vcf.gz
+```
+Normalize vcf, limit samples to one high quality individual per location, and rename samples.
+```
+bcftools norm -f GCF_014633375.1_OchPri4.0_genomic.fna -Oz -o mtDNA_norm.vcf.gz mtDNA.vcf.gz
+
+vcftools --gzvcf mtDNA_norm.vcf.gz --remove mt_remove.txt --recode --recode-INFO-all --out mt_46.vcf
+
+bcftools reheader -s mt_46_rename.txt mt_33.recode.vcf -Oz -o mt_46_renamed.vcf.gz
+```
+Filter SNPs for minimum depth of 3.
+```
+vcftools --gzvcf mt_46_renamed.vcf.gz --minDP 3 --recode --recode-INFO-all --out mt_46_dp3
+```
+Compress and index the vcf
+```
+bgzip mt_46_dp3.recode.vcf
+tabix mt_46_dp3.recode.vcf.gz
+```
+
+## Generate fasta files for each gene and align with MAFFT
+Use `scripts/mt_consensus.sh` to create fasta consensus files for each mitochondrial gene and `scripts/nuc_consensus.sh` for candidate nuclear genes. These scripts generate fasta's using the reference genome and variants in the vcf. I am using IUPAC codes for heterozygous sites, as RAxML can handle these, and coding missing data as "N". 
+
+Before running these two scripts, I activate mafft
+```
+conda activate mafft
+```
+
+## Align
+The gene fasta's are probably already aligned, but to be sure, I realigned with MAFFT. Note that this was already performed in `mt_consensus.sh` and `nuc_consensus.sh`, but this was the command:
+
+```
+mafft {gene_name}.fa > {gene_name}.msa
 ```
