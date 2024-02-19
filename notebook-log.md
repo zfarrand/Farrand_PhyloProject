@@ -121,6 +121,7 @@ Compress and index the vcf
 bgzip mt_46_dp3.recode.vcf
 tabix mt_46_dp3.recode.vcf.gz
 ```
+**I am still working on the nuclear vcf scripts as of 2-19**
 
 ## Generate fasta files for each gene and align with MAFFT
 ### Consensus Scripts
