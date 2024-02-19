@@ -74,7 +74,7 @@ samtools faidx GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:9468-9813 | bcf
 samtools faidx GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:9883-10179 | bcftools consensus -s "$i" mt_46_dp3.recode.vcf.gz -I -M "N" > mt_fasta_dp3/ND4L/"$i"_ND4L.fa
 samtools faidx GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:10173-11550 | bcftools consensus -s "$i" mt_46_dp3.recode.vcf.gz -I -M "N" > mt_fasta_dp3/ND4/"$i"_ND4.fa
 samtools faidx GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:11749-13560 | bcftools consensus -s "$i" mt_46_dp3.recode.vcf.gz -I -M "N" > mt_fasta_dp3/ND5/"$i"_ND5.fa
-samtools faidx GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:13556-14080 | bcftools consensus -s "$i" mt_46_dp3.recode.vcf.gz -I -M "N" > mt_fasta_dp3/ND6/"$i"_ND6.fa
+samtools faidx GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:13556-14080 -i | bcftools consensus -s "$i" mt_46_dp3.recode.vcf.gz -I -M "N" > mt_fasta_dp3/ND6/"$i"_ND6.fa
 samtools faidx GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:14153-15290 | bcftools consensus -s "$i" mt_46_dp3.recode.vcf.gz -I -M "N" > mt_fasta_dp3/CYTB/"$i"_CYTB.fa
 done
 #Then did this to get the sample names into the fasta header
@@ -82,5 +82,4 @@ for g in GENES; do; for f in "$g"/*.fa; do; sed -i "s/^>/>${f%_*}_/" "$f"; done
 #Then combined each sample's fasta into multisample gene alignments. 
 for g in GENES; do; cat "$g"/*.fa > "$g".fa; done
 #Then align with MAFFT 
-conda activate mafft
 for g in GENES; do; mafft "$g"/"$g".fa > "$g"/"$g".msa; done

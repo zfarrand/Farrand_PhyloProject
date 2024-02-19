@@ -123,15 +123,29 @@ tabix mt_46_dp3.recode.vcf.gz
 ```
 
 ## Generate fasta files for each gene and align with MAFFT
+### Consensus Scripts
+First I had to extract the cds coordinates for my nuclear candidate genes. I used `scripts/coordinates.sh` for this. Then I moved all of the coordiantes on the plus strand into a separate folder with grep, and manually moved the rest into another folder.
+
+```
+for file in *.txt; do
+[[ $(grep "+" "$file")]] && mv "$file" plus
+done
+```
+
+
 Use `scripts/mt_consensus.sh` to create fasta consensus files for each mitochondrial gene and `scripts/nuc_consensus.sh` for candidate nuclear genes. These scripts generate fasta's using the reference genome and variants in the vcf. I am using IUPAC codes for heterozygous sites, as RAxML can handle these, and coding missing data as "N". 
+
+**Note that I am still working on the consensus scripts as of 2-19**
 
 Before running these two scripts, I activate mafft
 ```
 conda activate mafft
 ```
 
-## Align
-The gene fasta's are probably already aligned, but to be sure, I realigned with MAFFT. Note that this was already performed in `mt_consensus.sh` and `nuc_consensus.sh`, but this was the command:
+### Alignment
+I then realign with MAFFT. MAFFT is unique in that it uses the Fast Fourier Transform for quickly finding homologous sequences, as it identifies correlations among physiochemical properties of amino acids. It can apply progressive alignment, iterative refinement, and structural alignment methods. The default is progressive alignment, which is what I use. MAFFT assumes that sequences are homologous with no genomic rearrangment, so it is limited by inversions, duplications, and translocations. 
+
+Note that this was already performed in `mt_consensus.sh` and `nuc_consensus.sh`, but this was the command:
 
 ```
 mafft {gene_name}.fa > {gene_name}.msa
