@@ -151,3 +151,44 @@ Note that this was already performed in `mt_consensus.sh` and `nuc_consensus.sh`
 ```
 mafft {gene_name}.fa > {gene_name}.msa
 ```
+# Tree building
+## Distance and parsimony
+### Distance
+For a distance-based tree, I used the ape package in R and used the default model of evolution (K80). The K80 model assumes that all substitutions have the same probability except that transitions and transversions are different from one another. I then used the distance matrix to generate a neighbor-joining tree, which is unrooted and does not assume a constant molecular clock. 
+
+The advantage of using distance-based methods is that it is fast and scalable to large datasets, as it can generate a tree without having to search the entire tree space. The disavantage is that the tree is an approximation fo the optimum, as it has not searched the entire tree space.
+
+In addition to setting the model of evolution, I can set a gamma parameter (defult is no gamma), set how to handle missing data (default is to delete sites with at least one sample with missing data), set to calculate variances from the distnaces (defualt is no), how the base frequencies should be calculatd (default is from the entire sequence), and whether to return as a matrix. I used all default parameters as I am only using this as a comparison to other methods. 
+
+Below I am providing an example for generating a distance-based tree with my CYTB alignment. 
+```
+library(ape)
+library(adegenet)
+
+dna <- fasta2DNAbin(file=CYTB.msa)
+D <- dist.dna(dna)
+tre <- nj(D)
+tre <- ladderize(tre)
+plot(tre, cex=.6)
+title("NJ Distance Tree for CYTB")
+```
+### Parsimony
+For a parsimony tree, I am using the phanghorn package in R. I start by converting the alignment into phydat format and generate a distance-based neighbor-joining tree to start the NNI search with, using the "raw" model of evolution, which is just based on the number of sites that differ in each pair of sequences. I then generate the parsimony score and generate the parsimony tree with the phydat object and the starting distance tree.
+
+The main assumption of parsimony is independence among sites. Parsimony is not model-based and is useful when there are computational limitations with model-based methods. The disadvantage is that it sometimes produces inconsistent trees and cannot handle pathological inequalities effectively.
+
+In phanghorn, I can change the method from fitch (default) to sankoff and whether to use NNI (default) or SPR rearrangements. I again use the default settings because I am using it as a comparison for other methods. 
+
+Below I am providing an example for generating a parsimony tree with my CYTB alignment.
+```
+library(adegenet)
+library(phanghorn)
+
+dna <- fasta2DNAbin(file=CYTB.msa)
+dna2 <- as.phyDat(dna)
+tre.ini <- nj(dist.dna(dna,model="raw"))
+parsimony(tre.ini, dna2)
+tre.pars <- optim.parsimony(tre.ini, dna2)
+plot(tre.pars, cex=0.6)
+title("Parsimony Tree for CYTB")
+```
