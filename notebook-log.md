@@ -207,8 +207,8 @@ raxmlHPC-PTHREADS -T 4 -m GTRGAMMA -p 12345 -# 100 -s CYTB.msa -n CYTB
 ```
 To get bootstrap values I include the `-b` flag, also using the 12345 seed. I allow RAxML to choose the number of bootstrap replicates needed with `-# autoMRE`. This stands for extended majority-rule consensus tree criterion. 
 ```
-raxmlHPC-PTHREADS -m GTRGAMMA -p 12345 -b 12345 -# autoMRE  -s CYTB.msa -n CYTB_bs
+raxmlHPC-PTHREADS -T 4 -m GTRGAMMA -p 12345 -b 12345 -# autoMRE  -s CYTB.msa -n CYTB_bs
 ```
 Finally, I use the bootstrap file to draw bipartitions on the best ML tree. 
 ```
-raxmlHPC-PTHREADS -m GTRGAMMA -p 12345 -f b -t RAxML_bestTree.CYTB -z RAxML_bootstrap.CYTB -n CYTB_bp
+raxmlHPC-PTHREADS -T 4 -m GTRGAMMA -p 12345 -f b -t RAxML_bestTree.CYTB -z RAxML_bootstrap.CYTB_bs -n CYTB_bp
