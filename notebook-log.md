@@ -192,3 +192,23 @@ tre.pars <- optim.parsimony(tre.ini, dna2)
 plot(tre.pars, cex=0.6)
 title("Parsimony Tree for CYTB")
 ```
+
+## Maximum Likelihood
+I am using RAxML to generate maximum likelihood trees. RAxML is self-described as a fast maximum likelihood tree search algorithm that returns trees with good likelihood scores. Strengths of RAxML are that it supports a wide variety of input data types, offers parallelization, and can automtically compute how many bootstrap values are necessary for each dataset. When compared with another leading ML software (IQTree), IQTree may require fewer replicates to find the best tree as it had lower variance than RAxML in certain test runs. I use the high performance computing (HPC) version and elected to use the GTRGAMMA model. The GTR model assumes that mutation process is the same at every branch of the tree, sites evolve independently, and all sites evolve the same rate. The last assumption is often violated in real data, so I allow substitution rates to vary at each site according to a gamma distrubtion. 
+
+You can specify many options, but I use `-T` to set threads, `-m` to set the model, `-p` to set the seed for parsimony inferencs, `-#` to set the number of trees to compute, `-s` to set the input sequence, and `-n` to set the output name.
+
+Below I am providing an example for generating a ML tree  with boostrap replicates using my CYTB alignment.
+___
+
+Start with computing 100 ML trees, which are all derived from distinct starting trees. The best supported tree will be called RAxML_bestTree.CYTB. I am using the GTRGAMMA model, running with 4 threads, and setting a seed of 12345.
+```
+raxmlHPC-PTHREADS -T 4 -m GTRGAMMA -p 12345 -# 100 -s CYTB.msa -n CYTB
+```
+To get bootstrap values I include the `-b` flag, also using the 12345 seed. I allow RAxML to choose the number of bootstrap replicates needed with `-# autoMRE`. This stands for extended majority-rule consensus tree criterion. 
+```
+raxmlHPC-PTHREADS -m GTRGAMMA -p 12345 -b 12345 -# autoMRE  -s CYTB.msa -n CYTB_bs
+```
+Finally, I use the bootstrap file to draw bipartitions on the best ML tree. 
+```
+raxmlHPC-PTHREADS -m GTRGAMMA -p 12345 -f b -t RAxML_bestTree.CYTB -z RAxML_bootstrap.CYTB -n CYTB_bp
