@@ -96,34 +96,60 @@ Then pull out the mtDNA sequences based on coordinates from the reference genome
 for infile in *.markdup.bam
 do
 base=$(basename ${infile} .markdup.bam)
-samtools view -@ 8 -o mitobam/${base}.mt.bam ${base}.markdup.bam NC_005358.1:1-16481
+samtools view -@ 8 -o mitobam/${base}.markdup.mt.bam ${base}.markdup.bam NC_005358.1:1-16481
 done
 ```
-Call variants and generate vcf. In mpileup I am disabling BAQ which helps to reduce false SNPs due to misalignments, skipping indels, applying minimum base quality of 20, and allowing for very high read depth as I will filter for this later. In call I am forcing a consensus for ploidy of 1 and only considering SNPs with p-value of 0.0001.
+Call variants and generate vcf. In mpileup I am disabling BAQ which helps to reduce false SNPs due to misalignments, applying minimum base quality of 20, and allowing for very high read depth as I will filter for this later. In call I am forcing a consensus for ploidy of 1 and only considering SNPs with p-value of 0.0001.
 ```
-bcftools mpileup -B -I --min-BQ 20 -Ou --threads 8 -f GCF_014633375.1_OchPri4.0_genomic.fna *.markdup.bam -d 8000 \
-| bcftools call --threads 8 --ploidy 1 -p .0001 -mv -a GQ,GP -Oz -o mtDNA.vcf.gz
+bcftools mpileup -B --min-BQ 20 -Ou --threads 8 -f refgenome/GCF_014633375.1_OchPri4.0_genomic.fna sam/bam/46_samples/mitobam/*.markdup.mt.bam -d 8000 \
+| bcftools call --threads 8 --ploidy 1 -p .0001 -mv -a GQ,GP -Oz -o 41_mtDNA.vcf.gz
 ```
-Normalize vcf, limit samples to one high quality individual per location, and rename samples.
+Normalize vcf and rename samples.
 ```
-bcftools norm -f GCF_014633375.1_OchPri4.0_genomic.fna -Oz -o mtDNA_norm.vcf.gz mtDNA.vcf.gz
+bcftools norm -f refgenome/GCF_014633375.1_OchPri4.0_genomic.fna -Ov -o 41_mtDNA_norm.vcf 41_mtDNA.vcf.gz
 
-vcftools --gzvcf mtDNA_norm.vcf.gz --remove mt_remove.txt --recode --recode-INFO-all --out mt_46.vcf
-
-bcftools reheader -s mt_46_rename.txt mt_33.recode.vcf -Oz -o mt_46_renamed.vcf.gz
+bcftools reheader -s mt_vcf_rename_41.txt 41_mtDNA_norm.vcf -o mt_41_renamed.vcf
 ```
 Filter SNPs for minimum depth of 3.
 ```
-vcftools --gzvcf mt_46_renamed.vcf.gz --minDP 3 --recode --recode-INFO-all --out mt_46_dp3
+vcftools --vcf mt_41_renamed.vcf --minDP 3 --recode --recode-INFO-all --out mt_41_dp3
 ```
 Compress and index the vcf
 ```
-bgzip mt_46_dp3.recode.vcf
-tabix mt_46_dp3.recode.vcf.gz
+bgzip mt_41_dp3.recode.vcf
+tabix mt_41_dp3.recode.vcf.gz
 ```
-**I am still working on the nuclear vcf scripts as of 2-19**
+___
+**Nuclear Genes**
 
-## Generate fasta files for each gene and align with MAFFT
+Generate a vcf with the `markdup.bam` files. I am using the same settings as the mtDNA vcf, except adding AD, DP, and SP annotations in case I want to filter for these settings later. I am also specifying a ploidy of 2. 
+```
+bcftools mpileup -B --min-BQ 20 -a AD,DP,SP -Ou --threads 8 -f refgenome/GCF_014633375.1_OchPri4.0_genomic.fna sam/bam/46_samples/*.markdup.bam -d 2000 \
+| bcftools call --threads 8 --ploidy 2 -p .0001 -mv -a GQ,GP -Oz -o 45.vcf.gz
+```
+Normalize vcf
+```
+bcftools norm -f refgenome/GCF_014633375.1_OchPri4.0_genomic.fna -Oz -o 45_norm.vcf.gz 45.vcf.gz
+```
+
+Filter SNPs for minimum depth of 3.
+```
+vcftools --vcf 45_renamed.vcf --minDP 4 --recode --recode-INFO-all --out 45_norm_dp4.vcf
+```
+Rename the samples
+```
+bcftools reheader -s vcf_rename.txt 45_norm_dp4.vcf -o 45_norm_dp4_renamed.vcf
+```
+Compress the vcf
+```
+bgzip 45_norm_dp4_renamed.vcf
+```
+I later decided that I wanted to remove individuals from the vcf
+```
+vcftools --remove nuc_remove_for41.txt --gzvcf 45_norm_dp4_renamed.vcf.gz --recode --recode-INFO-all --stdout | bgzip > 41_norm_dp4_renamed.vcf.gz
+```
+
+## Generate fasta files for each gene
 ### Consensus Scripts
 First I had to extract the cds coordinates for my nuclear candidate genes. I used `scripts/coordinates.sh` for this. Then I moved all of the coordiantes on the plus strand into a separate folder with grep, and manually moved the rest into another folder.
 
@@ -134,17 +160,41 @@ done
 ```
 
 
-Use `scripts/mt_consensus.sh` to create fasta consensus files for each mitochondrial gene and `scripts/nuc_consensus.sh` for candidate nuclear genes. These scripts generate fasta's using the reference genome and variants in the vcf. I am using IUPAC codes for heterozygous sites, as RAxML can handle these, and coding missing data as "N". 
+Use `scripts/mt_consensus.sh` to create fasta consensus files for each mitochondrial gene and `scripts/nuc_consensus_plus.sh` and `scripts/nuc_consensus_minus.sh` for candidate nuclear genes. These scripts generate fasta's using the reference genome and variants in the vcf. I am using IUPAC codes for heterozygous sites, as RAxML can handle these, and coding missing data as "N". 
 
-**Note that I am still working on the consensus scripts as of 2-19**
+### Outgroup Homologous Genes
+Then, to get homologous genes from my outgroups (rabbit and mouse), I first extract the genes from the reference genome. 
 
-Before running these two scripts, I activate mafft
+Starting with nuclear genes
 ```
-conda activate mafft
+for infile in coordinates/plus/*.txt; do 
+base=$(basename ${infile} _coord.txt)
+samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna -r coordinates/plus/${base}_coord.txt -o ref_fasta/${base}.fa
+done 
+
+for infile in coordinates/minus/*.txt; do
+samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna -r coordinates/minus/${base}_coord.txt -i -o ref_fasta/${base}.fa
+done
+```
+Then mitochondrial genes
+```
+samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:2745-3699 -o ref_fasta/ND1.fa
+samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:3908-4949 -o ref_fasta/ND2.fa
+samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:5333-6874 -o ref_fasta/COX1.fa
+samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:7018-7701 -o ref_fasta/COX2.fa
+samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:7773-7979 -o ref_fasta/ATP8.fa
+samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:7934-8613 -o ref_fasta/ATP6.fa
+samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:8614-9397 -o ref_fasta/COX3.fa
+samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:9468-9813 -o ref_fasta/ND3.fa
+samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:9883-10179 -o ref_fasta/ND4L.fa
+samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:10173-11550 -o ref_fasta/ND4.fa
+samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:11749-13560 -o ref_fasta/ND5.fa
+samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:13556-14080 -i -o ref_fasta/ND6.fa
+samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:14153-15290 -o ref_fasta/CYTB.fa
 ```
 
-### Alignment
-I then realign with MAFFT. MAFFT is unique in that it uses the Fast Fourier Transform for quickly finding homologous sequences, as it identifies correlations among physiochemical properties of amino acids. It can apply progressive alignment, iterative refinement, and structural alignment methods. The default is progressive alignment, which is what I use. MAFFT assumes that sequences are homologous with no genomic rearrangment, so it is limited by inversions, duplications, and translocations. 
+## Alignment
+I then align with MAFFT. MAFFT is unique in that it uses the Fast Fourier Transform for quickly finding homologous sequences, as it identifies correlations among physiochemical properties of amino acids. It can apply progressive alignment, iterative refinement, and structural alignment methods. The default is progressive alignment, which is what I use. MAFFT assumes that sequences are homologous with no genomic rearrangment, so it is limited by inversions, duplications, and translocations. 
 
 Note that this was already performed in `mt_consensus.sh` and `nuc_consensus.sh`, but this was the command:
 
