@@ -262,3 +262,34 @@ raxmlHPC-PTHREADS -T 4 -m GTRGAMMA -p 12345 -b 12345 -# autoMRE  -s CYTB.msa -n 
 Finally, I use the bootstrap file to draw bipartitions on the best ML tree. 
 ```
 raxmlHPC-PTHREADS -T 4 -m GTRGAMMA -p 12345 -f b -t RAxML_bestTree.CYTB -z RAxML_bootstrap.CYTB_bs -n CYTB_bp
+```
+## Bayesian 
+I am using MrBayes to generate a bayesian comparison for my CYTB alignment. MyBayes is a commonly used Bayesian Inference software that uses a variant of Markov chain Monte Carolo. Some major strengths of MrBayes are that it is easy to install and run and is widely used, so looking for information on paramters for various datasets can be easily acheived. A weakness of MrBayes, and most Bayesian analyses, is that there is rarely a priori for information for setting priors on trees and parameters. The independent exponential prior on branch length has been known to produce overly long branch trees with some datasets (Yang and Rannala 2012). MrBayes also assumes that aligned sequences are without errors and lacks ability to add new evolutionary models at the speed that RevBayes is able to. User choices include the number of generations, how often to save parameter values and tree topologies, how many independent runs, the number of chains, evolutionary model parameters, and priors for branch lengths, gamma shape paramter, kappa, and base frequencies. Assumptions will depend on the model of evolution, but in general, it is assumed that the mutation process is the same at every branch of the tree, sites evolve independently, and all sites evolve the same rate. The last assumption is often violated in real data, so I allow substitution rates to vary at each site according to a gamma distrubtion. 
+___
+I first start by converting my fasta to nexus using seqmagick. Also included is the code for how to install seqmagick.
+```
+pip install seqmagick
+seqmagick convert --output-format nexus --alphabet dna CYTB.msa CYTB.nex
+```
+I then add this block to the nexus file. I am running with 10,000,000 generations, set the sample frequency to 1000, and number of chains to 5. Here I am using the same `lset` settings that were used in the tutorial (2-parameter substitution matrix and to have rates vary across sites along a gamma distrubtion with 4 categories). I am also using the same priors from the tutorial for now, as I have been having trouble finding priors specified for other Ochotona studies that used MrBayes in the literature. This includes an unconstrained branch length prior with an exponential mean of 1/10, the shape paramter is exponential with a mean of 1.0, the kappa prior with a beta(1,1) distrubtion, and a flat Dirichlet distribution. 
+```
+begin mrbayes;
+ set autoclose=yes;
+ prset brlenspr=unconstrained:exp(10.0);
+ prset shapepr=exp(1.0);
+ prset tratiopr=beta(1.0,1.0);
+ prset statefreqpr=dirichlet(1.0,1.0,1.0,1.0);
+ lset nst=2 rates=gamma ngammacat=4;
+ mcmcp ngen=10000000 samplefreq=1000 printfreq=1000 nruns=1 nchains=5 savebrlens=yes;
+ outgroup dauurica;
+ mcmc;
+ sumt;
+end;
+```
+I installed MrBayes with homebrew and ran with the following commands
+```
+brew install mrbayes
+mb CYTB.nex
+```
+
+
