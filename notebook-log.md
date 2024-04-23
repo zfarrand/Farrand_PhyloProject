@@ -79,74 +79,72 @@ done
 ## SNP Calling and Filtering
 I then call SNPs with bcftools, but must do this separately for mitochdonrial and nuclear genes due to the ploidy. 
 
-I then reduced my sample list down to 3 high quality individuals per lineage/species, drawing from different populations when possible. 
+I then reduced my sample list down to 1 high quality individual per lineage/species, drawing from different populations when possible for O. princeps
 
 **Mitochondrial Genes**
 
-Start by indexing bam files.
-```
-for infile in *.markdup.bam
-do
-base=$(basename ${infile} .markdup.bam)
-samtools index ${base}.markdup.bam
-done
-```
-Then pull out the mtDNA sequences based on coordinates from the reference genome.
-```
-for infile in *.markdup.bam
-do
-base=$(basename ${infile} .markdup.bam)
-samtools view -@ 8 -o mitobam/${base}.markdup.mt.bam ${base}.markdup.bam NC_005358.1:1-16481
-done
-```
+Run the script `41_mitobam.sh`, which indexes bamfiles and extracts the mitochondrial coordinates from them, but only for the 41 samples that I want to use. 
+
 Call variants and generate vcf. In mpileup I am disabling BAQ which helps to reduce false SNPs due to misalignments, applying minimum base quality of 20, and allowing for very high read depth as I will filter for this later. In call I am forcing a consensus for ploidy of 1 and only considering SNPs with p-value of 0.0001.
 ```
-bcftools mpileup -B --min-BQ 20 -Ou --threads 8 -f refgenome/GCF_014633375.1_OchPri4.0_genomic.fna sam/bam/46_samples/mitobam/*.markdup.mt.bam -d 8000 \
+bcftools mpileup -B --min-BQ 20 -Ou --threads 8 -f refgenome/GCF_014633375.1_OchPri4.0_genomic.fna sam/bam/mitobam/*.markdup.mt.bam -d 8000 \
 | bcftools call --threads 8 --ploidy 1 -p .0001 -mv -a GQ,GP -Oz -o 41_mtDNA.vcf.gz
 ```
 Normalize vcf and rename samples.
 ```
 bcftools norm -f refgenome/GCF_014633375.1_OchPri4.0_genomic.fna -Ov -o 41_mtDNA_norm.vcf 41_mtDNA.vcf.gz
 
-bcftools reheader -s mt_vcf_rename_41.txt 41_mtDNA_norm.vcf -o mt_41_renamed.vcf
+bcftools reheader -s mt_vcf_rename_41.txt 41_mtDNA_norm.vcf -o 41_mtDNA_norm_renamed.vcf
 ```
 Filter SNPs for minimum depth of 3.
 ```
-vcftools --vcf mt_41_renamed.vcf --minDP 3 --recode --recode-INFO-all --out mt_41_dp3
+vcftools --vcf 41_mtDNA_norm_renamed.vcf --minDP 3 --recode --recode-INFO-all --out 41_mtDNA_norm_renamed_dp3
 ```
-Compress and index the vcf
+Then I filtered adjacent indels within 5bp (see this tutorial: https://samtools.github.io/bcftools/howtos/consensus-sequence.html)
 ```
-bgzip mt_41_dp3.recode.vcf
-tabix mt_41_dp3.recode.vcf.gz
+bcftools filter --IndelGap 5 -Oz -o 41_mtDNA_norm_renamed_dp3_ig5.vcf.gz 41_mtDNA_norm_renamed_dp3.recode.vcf
+```
+Index the vcf
+```
+tabix 41_mtDNA_norm_renamed_dp3_ig5.vcf.gz
 ```
 ___
 **Nuclear Genes**
 
 Generate a vcf with the `markdup.bam` files. I am using the same settings as the mtDNA vcf, except adding AD, DP, and SP annotations in case I want to filter for these settings later. I am also specifying a ploidy of 2. 
+
+Move the 41 samples for the nuclear vcf into a new folder with `41_nucbam.sh` script.
+
 ```
-bcftools mpileup -B --min-BQ 20 -a AD,DP,SP -Ou --threads 8 -f refgenome/GCF_014633375.1_OchPri4.0_genomic.fna sam/bam/46_samples/*.markdup.bam -d 2000 \
-| bcftools call --threads 8 --ploidy 2 -p .0001 -mv -a GQ,GP -Oz -o 45.vcf.gz
+bcftools mpileup -B --min-BQ 20 -a AD,DP,SP -Ou --threads 8 -f refgenome/GCF_014633375.1_OchPri4.0_genomic.fna sam/bam/41_samples/*.markdup.bam -d 2000 \
+| bcftools call --threads 8 --ploidy 2 -p .0001 -mv -a GQ,GP -Oz -o 41.vcf.gz
 ```
+___
 Normalize vcf
 ```
-bcftools norm -f refgenome/GCF_014633375.1_OchPri4.0_genomic.fna -Oz -o 45_norm.vcf.gz 45.vcf.gz
+bcftools norm -f refgenome/GCF_014633375.1_OchPri4.0_genomic.fna -Oz -o 41_norm.vcf.gz 41.vcf.gz
 ```
 
-Filter SNPs for minimum depth of 3.
+Filter SNPs for minimum depth of 4.
 ```
-vcftools --vcf 45_renamed.vcf --minDP 4 --recode --recode-INFO-all --out 45_norm_dp4.vcf
+vcftools --gzvcf 41_norm.vcf.gz --minDP 4 --recode --recode-INFO-all --out 41_norm_dp4
 ```
 Rename the samples
 ```
-bcftools reheader -s vcf_rename.txt 45_norm_dp4.vcf -o 45_norm_dp4_renamed.vcf
+bcftools reheader -s vcf_rename.txt 41_norm_dp4.recode.vcf -o 41_norm_dp4_renamed.vcf
 ```
-Compress the vcf
+Then I filtered adjacent indels within 5bp (see this tutorial: https://samtools.github.io/bcftools/howtos/consensus-sequence.html)
 ```
-bgzip 45_norm_dp4_renamed.vcf
+bcftools filter --IndelGap 5 -Oz -o 41_norm_dp4_renamed_ig5.vcf.gz 41_norm_dp4_renamed.vcf
 ```
-I later decided that I wanted to remove individuals from the vcf
+I am also trying a dataset where I remove indels completely, because I think most phylogenetic models don't use them anyways and they're causing me a lot of trouble with the consensus scripts. 
 ```
-vcftools --remove nuc_remove_for41.txt --gzvcf 45_norm_dp4_renamed.vcf.gz --recode --recode-INFO-all --stdout | bgzip > 41_norm_dp4_renamed.vcf.gz
+vcftools --gzvcf 41_norm_dp4_renamed_ig5.vcf.gz --remove-indels --recode --recode-INFO-all --stdout | bgzip > 41_norm_dp4_renamed_ig5_noindel.vcf.gz
+```
+Index the vcf
+```
+tabix 41_norm_dp4_renamed_ig5.vcf.gz
+tabix 41_norm_dp4_renamed_ig5_noindel.vcf.gz
 ```
 
 ## Generate fasta files for each gene
@@ -158,12 +156,28 @@ for file in *.txt; do
 [[ $(grep "+" "$file")]] && mv "$file" plus
 done
 ```
+THe `consensus.sh` worked for everyone except for XM_004586853.1 because it's technically mRNA and not a gene. So I ran:
+```
+grep "$i" data/GCF_014633375.1_OchPri4.0_genomic.gff |  awk -F'\t' -v OFS="\t" 'NR>1{ split($9,a,";");print $1,$4,$5,$7,a[6]}' > XM_004586853.1_test.txt
+```
+Then I manually added the coordinates for the mRNA to `XM_004586853.1`
 
+Then I found more coordinates in the `minus_2` folder (see below) that were blank. I wrote two scripts to handle this: `scripts/coordinates_product_sh` and `scripts/coordinates_mRNA.sh` because they didn't have the word "gene" in the sections I was extracting, but rather "mRNA" or "product". 
 
-Use `scripts/mt_consensus.sh` to create fasta consensus files for each mitochondrial gene and `scripts/nuc_consensus_plus.sh` and `scripts/nuc_consensus_minus.sh` for candidate nuclear genes. These scripts generate fasta's using the reference genome and variants in the vcf. I am using IUPAC codes for heterozygous sites, as RAxML can handle these, and coding missing data as "N". 
+Use `scripts/mt_consensus.sh` to create fasta consensus files for each mitochondrial gene.  For plus strand nuclear genes, I run `scripts/nuc_consensus_plus.sh`. For minus strand genes, I have to run two scripts because running all of the transcripts at the same time overwhelms the memeory for samtools and it aborts before finishing: `scripts/nuc_consensus_minus_1.sh` and `scripts/nuc_consensus_minus_2.sh` These scripts generate fasta's using the reference genome and variants in the vcf. I am using IUPAC codes for heterozygous sites, as RAxML can handle these, and coding missing data as "N". 
+
+Convert minus strand genes to reverse complements with MAFFT
+```
+for infile in cat_minus/*_renamed.fa; do f=$(basename ${infile} _renamed.fa); mafft --adjustdirection cat_minus/"$f"_renamed.fa > cat_minus_revcomp/"$f"_renamed_rc.fa; done
+```
+
 
 ### Outgroup Homologous Genes
-Then, to get homologous genes from my outgroups (rabbit and mouse), I first extract the genes from the reference genome. 
+I use blast to get homologous genes from my outgroups (rabbit and mouse). I first make a blast database of the rabbit genome. 
+
+```
+makeblastdb -in GCF_000003625.3_OryCun2.0_genomic.fna -title OryCun2 -out OryCun2 -dbtype nucl -parse_seqids
+```
 
 Starting with nuclear genes
 ```

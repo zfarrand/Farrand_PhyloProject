@@ -58,19 +58,19 @@ CYTB"
 
 for i in $FILES
 do
-samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:2745-3699 | bcftools consensus -s "$i" mt_41_dp3.recode.vcf.gz -I -M "N" > mt_fasta_dp3/ND1/"$i"_ND1.fa
-samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:3908-4949 | bcftools consensus -s "$i" mt_41_dp3.recode.vcf.gz -I -M "N" > mt_fasta_dp3/ND2/"$i"_ND2.fa
-samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:5333-6874 | bcftools consensus -s "$i" mt_41_dp3.recode.vcf.gz -I -M "N" > mt_fasta_dp3/COX1/"$i"_COX1.fa
-samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:7018-7701 | bcftools consensus -s "$i" mt_41_dp3.recode.vcf.gz -I -M "N" > mt_fasta_dp3/COX2/"$i"_COX2.fa
-samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:7773-7979 | bcftools consensus -s "$i" mt_41_dp3.recode.vcf.gz -I -M "N" > mt_fasta_dp3/ATP8/"$i"_ATP8.fa
-samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:7934-8613 | bcftools consensus -s "$i" mt_41_dp3.recode.vcf.gz -I -M "N" > mt_fasta_dp3/ATP6/"$i"_ATP6.fa
-samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:8614-9397 | bcftools consensus -s "$i" mt_41_dp3.recode.vcf.gz -I -M "N" > mt_fasta_dp3/COX3/"$i"_COX3.fa
-samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:9468-9813 | bcftools consensus -s "$i" mt_41_dp3.recode.vcf.gz -I -M "N" > mt_fasta_dp3/ND3/"$i"_ND3.fa
-samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:9883-10179 | bcftools consensus -s "$i" mt_41_dp3.recode.vcf.gz -I -M "N" > mt_fasta_dp3/ND4L/"$i"_ND4L.fa
-samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:10173-11550 | bcftools consensus -s "$i" mt_41_dp3.recode.vcf.gz -I -M "N" > mt_fasta_dp3/ND4/"$i"_ND4.fa
-samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:11749-13560 | bcftools consensus -s "$i" mt_41_dp3.recode.vcf.gz -I -M "N" > mt_fasta_dp3/ND5/"$i"_ND5.fa
-samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:13556-14080 -i | bcftools consensus -s "$i" mt_41_dp3.recode.vcf.gz -I -M "N" > mt_fasta_dp3/ND6/"$i"_ND6.fa
-samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:14153-15290 | bcftools consensus -s "$i" mt_41_dp3.recode.vcf.gz -I -M "N" > mt_fasta_dp3/CYTB/"$i"_CYTB.fa
+samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:2745-3699 | bcftools consensus -s "$i" 41_mtDNA_norm_renamed_dp3_ig5.vcf.gz -M "N" > mt_fasta_dp3/ND1/"$i"_ND1.fa
+samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:3908-4949 | bcftools consensus -s "$i" 41_mtDNA_norm_renamed_dp3_ig5.vcf.gz -M "N" > mt_fasta_dp3/ND2/"$i"_ND2.fa
+samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:5333-6874 | bcftools consensus -s "$i" 41_mtDNA_norm_renamed_dp3_ig5.vcf.gz -M "N" > mt_fasta_dp3/COX1/"$i"_COX1.fa
+samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:7018-7701 | bcftools consensus -s "$i" 41_mtDNA_norm_renamed_dp3_ig5.vcf.gz -M "N" > mt_fasta_dp3/COX2/"$i"_COX2.fa
+samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:7773-7979 | bcftools consensus -s "$i" 41_mtDNA_norm_renamed_dp3_ig5.vcf.gz -M "N" > mt_fasta_dp3/ATP8/"$i"_ATP8.fa
+samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:7934-8613 | bcftools consensus -s "$i" 41_mtDNA_norm_renamed_dp3_ig5.vcf.gz -M "N" > mt_fasta_dp3/ATP6/"$i"_ATP6.fa
+samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:8614-9397 | bcftools consensus -s "$i" 41_mtDNA_norm_renamed_dp3_ig5.vcf.gz -M "N" > mt_fasta_dp3/COX3/"$i"_COX3.fa
+samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:9468-9813 | bcftools consensus -s "$i" 41_mtDNA_norm_renamed_dp3_ig5.vcf.gz -M "N" > mt_fasta_dp3/ND3/"$i"_ND3.fa
+samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:9883-10179 | bcftools consensus -s "$i" 41_mtDNA_norm_renamed_dp3_ig5.vcf.gz -M "N" > mt_fasta_dp3/ND4L/"$i"_ND4L.fa
+samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:10173-11550 | bcftools consensus -s "$i" 41_mtDNA_norm_renamed_dp3_ig5.vcf.gz -M "N" > mt_fasta_dp3/ND4/"$i"_ND4.fa
+samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:11749-13560 | bcftools consensus -s "$i" 41_mtDNA_norm_renamed_dp3_ig5.vcf.gz -M "N" > mt_fasta_dp3/ND5/"$i"_ND5.fa
+samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:13556-14080 -i | bcftools consensus -s "$i" 41_mtDNA_norm_renamed_dp3_ig5.vcf.gz -M "N" > mt_fasta_dp3/ND6/"$i"_ND6.fa
+samtools faidx refgenome/GCF_014633375.1_OchPri4.0_genomic.fna NC_005358.1:14153-15290 | bcftools consensus -s "$i" 41_mtDNA_norm_renamed_dp3_ig5.vcf.gz -M "N" > mt_fasta_dp3/CYTB/"$i"_CYTB.fa
 done
 #Then did this to get the sample names into the fasta header
 for g in $GENES; do for infile in mt_fasta_dp3/"$g"/*.fa; do f=$(basename ${infile} .fa); sed -i "s/^>/>${f%_*}_/" mt_fasta_dp3/"$g"/"$f".fa; done; done
